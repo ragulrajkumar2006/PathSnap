@@ -1,0 +1,7 @@
+check,count
+NaN values in .track,0
+non-increasing timestamps,0
+speed glitches > 85 m/s,61
+gaps > 60 s,70
+isolated nodes,0
+fixes > 60 m from reference route,22361

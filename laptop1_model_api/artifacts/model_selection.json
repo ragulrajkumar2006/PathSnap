@@ -1,0 +1,6 @@
+{
+  "selected_model": "random_forest",
+  "rule": "highest CV macro F1, tie-break student-test Top-1",
+  "cv_macro_f1": 0.937172496783458,
+  "test_top1_accuracy": 0.8963679122027698
+}

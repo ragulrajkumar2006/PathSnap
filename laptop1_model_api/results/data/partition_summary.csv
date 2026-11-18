@@ -1,0 +1,3 @@
+partition,trips,fixes,fixes_mean,nan_values,dropped_by_cleaning,gaps_gt60s,max_gap_s,pct_dt_1s,arcs_mean,isolated_nodes,route_connected,far_from_route
+student_test,10,19160,1916.0,0,0,1,210.0,0.982,18504.1,0,0.9997,0.0006
+train,80,208417,2605.2125,0,72,69,153064.0,0.9383,48461.3,0,0.9993,0.0228
