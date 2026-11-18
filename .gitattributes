@@ -1,0 +1,2 @@
+# Folium maps are generated output; keep them out of the language stats
+*.html linguist-generated
