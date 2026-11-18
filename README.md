@@ -2,7 +2,7 @@
 
 UE24CS352A Machine Learning Hackathon (PES University).
 
-## Team
+## Team Members
 
 | Name | SRN |
 |---|---|
