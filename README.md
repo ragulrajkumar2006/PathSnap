@@ -2,6 +2,15 @@
 
 UE24CS352A Machine Learning Hackathon (PES University).
 
+## Team
+
+| Name | SRN |
+|---|---|
+| Rhea Nair | PES2UG24AM133 |
+| Riya Harugop | PES2UG24AM136 |
+| Ragul Rajkumar S | PES2UG24AM128 |
+| Vinayak Kalal | PES2UG25AM809 |
+
 PathSnap matches noisy GPS fixes to a road network. It generates candidate road segments for each fix, scores them with a classifier, and decodes a connected route with an HMM and the Viterbi algorithm.
 
 ```
