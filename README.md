@@ -13,15 +13,17 @@ UE24CS352A Machine Learning Hackathon (PES University).
 
 PathSnap matches noisy GPS fixes to a road network. It generates candidate road segments for each fix, scores them with a classifier, and decodes a connected route with an HMM and the Viterbi algorithm.
 
-```
+## Project Pipeline
+
+```text
 raw trip ──► clean + project ──► candidate arcs ──► features ──► classifier P(match)
                                                                      │
                      route + metrics ◄── stitch ◄── Viterbi (HMM) ◄──┘
 ```
 
-## Two-laptop deployment
+## Two-Laptop Deployment
 
-```
+```text
  Laptop 1: model + API                       Laptop 2: UI
  ┌──────────────────────────────┐  same    ┌──────────────────────────┐
  │ full pipeline, trained model │  Wi-Fi / │ Streamlit UI (:8501)     │
@@ -30,9 +32,9 @@ raw trip ──► clean + project ──► candidate arcs ──► features �
  └──────────────────────────────┘          └──────────────────────────┘
 ```
 
-## Repository layout
+## Repository Layout
 
-```
+```text
 .
 ├── laptop1_model_api/          Laptop 1: everything for training, tuning and serving
 │   ├── pathsnap_core/          shared library (loading, cleaning, candidates, labels, features, metrics, HMM, predictor)
@@ -43,12 +45,16 @@ raw trip ──► clean + project ──► candidate arcs ──► features �
 │   ├── artifacts/              saved model weights and configs (final + all untuned models, HMM params)
 │   ├── results/                CSVs, plots, Folium HTML maps, experiment logs, deployment screenshots
 │   ├── data/raw/               put the course dataset here (not committed, see its README)
-│   ├── requirements.txt  run_all.sh  start_api.command
+│   ├── requirements.txt
+│   ├── run_all.sh
+│   └── start_api.command
+│
 ├── laptop2_ui/                 Laptop 2: Streamlit + Folium evaluator UI (no model, no data)
+│
 └── docs/HOW_IT_WORKS.md        method, results and design explanations
 ```
 
-## Where each deliverable lives
+## Where Each Deliverable Lives
 
 | Required component | Location |
 |---|---|
@@ -67,7 +73,7 @@ raw trip ──► clean + project ──► candidate arcs ──► features �
 
 Paths in the table are relative to `laptop1_model_api/`, except `laptop2_ui/`.
 
-## Laptop 1 setup (Python 3.11–3.13)
+## Laptop 1 Setup (Python 3.11–3.13)
 
 ```bash
 cd laptop1_model_api
@@ -76,9 +82,26 @@ source .venv/bin/activate
 pip install -r requirements.txt
 ```
 
-Copy the dataset into `data/raw/train/` and `data/raw/student_test/` (see `data/raw/README.md`).
+Copy the dataset into:
 
-### Offline pipeline (full rerun with `./run_all.sh`, about 1 h)
+```text
+data/raw/train/
+data/raw/student_test/
+```
+
+See `data/raw/README.md` for dataset placement instructions.
+
+## Offline Pipeline
+
+Run the complete pipeline using:
+
+```bash
+./run_all.sh
+```
+
+Approximate total runtime: 1 hour.
+
+Individual stages can also be executed separately:
 
 ```bash
 python -m mac1.data.eda                    # ~1 min
@@ -92,7 +115,7 @@ python -m mac1.tuning_hmm.route_maps       # ~30 s
 
 The trained artifacts are already committed, so you can start the API without rerunning the pipeline.
 
-### Start the API
+## Start the API (Laptop 1)
 
 ```bash
 uvicorn mac1.api.main:app --host 0.0.0.0 --port 8000
@@ -102,9 +125,9 @@ python -m mac1.api.test_all_trips              # optional: runs every trip throu
 
 On macOS you can also double-click `start_api.command`. It prints the URL to give to Laptop 2.
 
-## Laptop 2 setup
+## Laptop 2 Setup
 
-Laptop 2 only needs the `laptop2_ui/` folder:
+Laptop 2 only needs the `laptop2_ui/` folder.
 
 ```bash
 cd laptop2_ui
@@ -115,7 +138,7 @@ streamlit run app.py -- --api http://<LAPTOP1_IP>:8000
 
 See `laptop2_ui/README.md` for troubleshooting.
 
-## Evaluation day
+## Evaluation Day
 
 1. Connect both laptops to the **same phone hotspot**. Campus Wi-Fi often blocks connections between devices.
 2. On Laptop 1, copy the evaluator trips to `data/raw/evaluator_test/<trip_id>/`, then (re)start the API. It serves `evaluator_test` automatically when that folder exists, otherwise `student_test`. You can override this with `PATHSNAP_TRIPS_DIR=/path`.
@@ -124,15 +147,15 @@ See `laptop2_ui/README.md` for troubleshooting.
 
 The UI never loads the model or any `.route` file. The API reads the reference route only after the prediction is finished, to compute accuracy, and never returns it.
 
-## Method summary
+## Method Summary
 
-- **Cleaning:** fixes that are non-finite, have non-increasing timestamps, or imply a speed above 85 m/s are dropped.
-- **Projection:** trips are spread worldwide, so each trip uses a local equirectangular projection centred on its own GPS mean.
-- **Candidates:** arcs within 60 m of a fix, at most 12, found with a KD-tree over arcs densified every 10 m.
+- **Cleaning:** Fixes that are non-finite, have non-increasing timestamps, or imply a speed above 85 m/s are dropped.
+- **Projection:** Trips are spread worldwide, so each trip uses a local equirectangular projection centred on its own GPS mean.
+- **Candidates:** Arcs within 60 m of a fix, at most 12, found with a KD-tree over arcs densified every 10 m.
 - **Labels:** `.route` has no per-fix timing, so a monotone dynamic programme aligns fixes to route positions. Fixes more than 60 m from their aligned arc are marked `label_valid=0` and excluded from training and scoring.
-- **Features (21):** distance and rank, distance relative to the nearest candidate, projection fraction, heading difference, windowed distance/heading over ±3 fixes, connectivity with neighbouring fixes' nearest arc, reverse-twin flag, node degrees, speed and time gap.
+- **Features (21):** Distance and rank, distance relative to the nearest candidate, projection fraction, heading difference, windowed distance/heading over ±3 fixes, connectivity with neighbouring fixes' nearest arc, reverse-twin flag, node degrees, speed and time gap.
 - **Models:** Logistic Regression, Gaussian NB, KNN, Decision Tree, Random Forest, Extra Trees, HistGradientBoosting, MLP. 5-fold GroupKFold by trip, with student-test used for comparison.
-- **HMM:** states are candidate arcs. Emission is `w·log p(classifier)`. Transition is `-|d_route − d_gc| / (β√dt)`, using a bounded Dijkstra on the trip's road graph. Chains restart when no transition is reachable. β and w are tuned on out-of-fold train predictions.
+- **HMM:** States are candidate arcs. Emission is `w·log p(classifier)`. Transition is `-|d_route − d_gc| / (β√dt)`, using a bounded Dijkstra on the trip's road graph. Chains restart when no transition is reachable. β and w are tuned on out-of-fold train predictions.
 
 See `docs/HOW_IT_WORKS.md` for detailed results and explanations.
 
